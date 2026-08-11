@@ -1,17 +1,18 @@
 """
 Camada de dados do Aplicativo de Vendas.
 
-Fonte da verdade: Firebase Realtime Database (REST API, sem SDK).
-dados.json continua existindo como cache local -- garante que o app
-funciona mesmo sem internet e evita perda de dados se o Firebase estiver
-fora do ar. A cada leitura tentamos o Firebase primeiro; a cada escrita,
-gravamos local e espelhamos para o Firebase.
+Fonte da verdade: Firebase Realtime Database (REST API, sem SDK), protegido
+por autenticação (Firebase Auth, também via REST puro, sem SDK). dados.json
+continua existindo como cache local -- garante que o app funciona mesmo sem
+internet e evita perda de dados se o Firebase estiver fora do ar. A cada
+leitura tentamos o Firebase primeiro (mandando o idToken da sessão atual);
+a cada escrita, gravamos local e espelhamos para o Firebase.
 
-Isso pressupõe regras públicas (".read"/".write": true), como configurado
-agora. Quando for hora de restringir as regras, o próximo passo é acrescentar
-autenticação (Firebase Auth) e mandar o idToken em cada requisição -- a
-interface pública desta classe (DataStore) foi pensada para não precisar
-mudar nas telas quando isso acontecer.
+Login: cada vendedor tem uma conta própria (email/senha) no Firebase Auth.
+O id do vendedor no banco passa a ser o próprio uid do Firebase para quem se
+cadastra por aqui (os vendedores antigos, criados antes do login existir,
+mantêm o id numérico sequencial de antes e continuam aparecendo nos
+relatórios, só não têm mais uma conta vinculada).
 """
 
 import json
@@ -22,11 +23,40 @@ import requests
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ARQUIVO_DADOS = os.path.join(BASE_DIR, "dados.json")
+ARQUIVO_SESSAO = os.path.join(BASE_DIR, "sessao.json")
 
 # URL base do Realtime Database (sem barra no final e sem ".json").
 # Ajuste aqui se trocar de projeto/banco no Firebase.
 FIREBASE_URL = "https://tough-country-457016-i0-default-rtdb.firebaseio.com"
 FIREBASE_TIMEOUT = 5  # segundos
+
+# Web API Key do projeto Firebase (Configurações do projeto > Geral, ou
+# Google Cloud Console > APIs e Serviços > Credenciais). Necessária só para
+# as chamadas de autenticação (login/criar conta), não para o Realtime
+# Database em si.
+FIREBASE_API_KEY = "AIzaSyBf1ANZCkLQ3oa6epoiJYCGO76HNk0_NhM"
+
+# Traduz os códigos de erro que o Firebase Auth devolve em texto técnico
+# (em inglês) para mensagens que fazem sentido pra quem está usando o app.
+MENSAGENS_ERRO_AUTH = {
+    "EMAIL_EXISTS": "Já existe uma conta com esse email.",
+    "EMAIL_NOT_FOUND": "Não existe conta com esse email.",
+    "INVALID_PASSWORD": "Senha incorreta.",
+    "INVALID_LOGIN_CREDENTIALS": "Email ou senha incorretos.",
+    "USER_DISABLED": "Essa conta foi desativada.",
+    "INVALID_EMAIL": "Email inválido.",
+    "MISSING_PASSWORD": "Digite uma senha.",
+    "MISSING_EMAIL": "Digite um email.",
+}
+
+
+def _mensagem_erro_auth(resp_json):
+    codigo = resp_json.get("error", {}).get("message", "Erro desconhecido")
+    if codigo.startswith("WEAK_PASSWORD"):
+        return "A senha precisa ter pelo menos 6 caracteres."
+    if codigo.startswith("TOO_MANY_ATTEMPTS"):
+        return "Muitas tentativas seguidas. Espere um pouco e tente de novo."
+    return MENSAGENS_ERRO_AUTH.get(codigo, codigo)
 
 # Catálogo fixo de clientes (redes), ligado aos ícones existentes em
 # icones/fotos_clientes/
@@ -80,7 +110,10 @@ def _normalizar_colecao(bruto):
         return []
     itens = list(bruto.values()) if isinstance(bruto, dict) else list(bruto)
     itens = [item for item in itens if item]
-    itens.sort(key=lambda item: item.get("id", 0))
+    # str() no key porque a partir da autenticação os ids passam a ser mistos
+    # (inteiros dos vendedores antigos + uids em string dos que fizeram
+    # login) -- sorted() não compara int com str diretamente.
+    itens.sort(key=lambda item: str(item.get("id", 0)))
     return itens
 
 
@@ -93,7 +126,12 @@ class DataStore:
         self.arquivo = arquivo
         self.firebase_url = firebase_url.rstrip("/") if firebase_url else None
         self.online = True  # atualizado a cada tentativa de acesso ao Firebase
+        self.id_token = None  # token da sessão atual (Firebase Auth), None = deslogado
+        self.uid = None
         self._dados = {"vendedores": [], "vendas": []}
+        # Sem login ainda não temos idToken, então isso só preenche o cache
+        # local (dados.json) se as regras do banco exigirem auth -- assim que
+        # o login acontecer, carregar() é chamado de novo já autenticado.
         self.carregar()
 
     # ---------- Firebase (REST, sem SDK) ----------
@@ -102,7 +140,8 @@ class DataStore:
         if not self.firebase_url:
             return None
         try:
-            resp = requests.get(f"{self.firebase_url}/.json", timeout=FIREBASE_TIMEOUT)
+            params = {"auth": self.id_token} if self.id_token else {}
+            resp = requests.get(f"{self.firebase_url}/.json", params=params, timeout=FIREBASE_TIMEOUT)
             resp.raise_for_status()
             self.online = True
             return resp.json()
@@ -121,12 +160,135 @@ class DataStore:
             "vendas": {str(v["id"]): v for v in self._dados["vendas"]},
         }
         try:
-            resp = requests.put(f"{self.firebase_url}/.json", json=payload, timeout=FIREBASE_TIMEOUT)
+            params = {"auth": self.id_token} if self.id_token else {}
+            resp = requests.put(f"{self.firebase_url}/.json", json=payload, params=params, timeout=FIREBASE_TIMEOUT)
             resp.raise_for_status()
             self.online = True
         except Exception as erro:
             self.online = False
             print(f"[Firebase] não foi possível gravar no banco ({erro}). Dados salvos só localmente por enquanto.")
+
+    # ---------- Autenticação (Firebase Auth REST) ----------
+
+    def criar_conta(self, email, senha, nome, foto):
+        """Cria a conta no Firebase Auth e, junto, o perfil do vendedor
+        (usando o uid da conta como id do vendedor). Retorna (vendedor, None)
+        em caso de sucesso, ou (None, mensagem_de_erro) em caso de falha."""
+        url = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={FIREBASE_API_KEY}"
+        try:
+            resp = requests.post(
+                url,
+                json={"email": email, "password": senha, "returnSecureToken": True},
+                timeout=FIREBASE_TIMEOUT,
+            )
+            resp_json = resp.json()
+        except Exception as erro:
+            return None, f"Sem conexão com o Firebase ({erro})."
+
+        if not resp.ok:
+            return None, _mensagem_erro_auth(resp_json)
+
+        self.id_token = resp_json["idToken"]
+        self.uid = resp_json["localId"]
+        self._salvar_sessao(resp_json["refreshToken"])
+
+        vendedor = {"id": self.uid, "nome": nome.strip(), "foto": foto, "email": email}
+        self._dados["vendedores"].append(vendedor)
+        self.salvar()
+        return vendedor, None
+
+    def fazer_login(self, email, senha):
+        """Autentica no Firebase Auth e carrega o perfil do vendedor
+        correspondente ao uid. Retorna (vendedor, None) ou (None, erro)."""
+        url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
+        try:
+            resp = requests.post(
+                url,
+                json={"email": email, "password": senha, "returnSecureToken": True},
+                timeout=FIREBASE_TIMEOUT,
+            )
+            resp_json = resp.json()
+        except Exception as erro:
+            return None, f"Sem conexão com o Firebase ({erro})."
+
+        if not resp.ok:
+            return None, _mensagem_erro_auth(resp_json)
+
+        self.id_token = resp_json["idToken"]
+        self.uid = resp_json["localId"]
+        self._salvar_sessao(resp_json["refreshToken"])
+
+        self.carregar()  # agora com idToken válido, recarrega já autenticado
+        vendedor = self.vendedor_por_id(self.uid)
+        if not vendedor:
+            return None, "Login feito, mas não encontramos o cadastro desse vendedor no banco."
+        return vendedor, None
+
+    def tentar_login_automatico(self):
+        """Chamado ao abrir o app: se existir uma sessão salva (refresh
+        token), tenta renovar o idToken sem pedir email/senha de novo.
+        Retorna o vendedor logado, ou None se não havia sessão ou ela expirou/
+        foi revogada."""
+        refresh_token = self._carregar_sessao()
+        if not refresh_token:
+            return None
+
+        url = f"https://securetoken.googleapis.com/v1/token?key={FIREBASE_API_KEY}"
+        try:
+            resp = requests.post(
+                url,
+                data={"grant_type": "refresh_token", "refresh_token": refresh_token},
+                timeout=FIREBASE_TIMEOUT,
+            )
+            resp_json = resp.json()
+        except Exception:
+            return None
+
+        if not resp.ok:
+            self._limpar_sessao()
+            return None
+
+        self.id_token = resp_json["id_token"]
+        self.uid = resp_json["user_id"]
+        self._salvar_sessao(resp_json["refresh_token"])
+
+        self.carregar()
+        vendedor = self.vendedor_por_id(self.uid)
+        if not vendedor:
+            self.sair()
+            return None
+        return vendedor
+
+    def sair(self):
+        """Encerra a sessão atual (logout). Os dados em cache local
+        continuam disponíveis, só as próximas leituras/escritas no Firebase
+        deixam de mandar o idToken."""
+        self.id_token = None
+        self.uid = None
+        self._limpar_sessao()
+
+    def _salvar_sessao(self, refresh_token):
+        try:
+            with open(ARQUIVO_SESSAO, "w", encoding="utf-8") as f:
+                json.dump({"refresh_token": refresh_token}, f)
+        except Exception as erro:
+            print(f"[Sessão] não foi possível salvar a sessão local ({erro}).")
+
+    def _carregar_sessao(self):
+        if not os.path.exists(ARQUIVO_SESSAO):
+            return None
+        try:
+            with open(ARQUIVO_SESSAO, "r", encoding="utf-8") as f:
+                return json.load(f).get("refresh_token")
+        except Exception:
+            return None
+
+    def _limpar_sessao(self):
+        try:
+            if os.path.exists(ARQUIVO_SESSAO):
+                os.remove(ARQUIVO_SESSAO)
+        except Exception:
+            pass
 
     # ---------- persistência ----------
 
@@ -160,13 +322,6 @@ class DataStore:
 
     def listar_vendedores(self):
         return list(self._dados["vendedores"])
-
-    def adicionar_vendedor(self, nome, foto):
-        novo_id = (max([v["id"] for v in self._dados["vendedores"]], default=0)) + 1
-        vendedor = {"id": novo_id, "nome": nome.strip(), "foto": foto}
-        self._dados["vendedores"].append(vendedor)
-        self.salvar()
-        return vendedor
 
     def vendedor_por_id(self, vendedor_id):
         for v in self._dados["vendedores"]:

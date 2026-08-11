@@ -53,43 +53,57 @@ def _linha_com_fundo(**kwargs):
     return row
 
 
-# ------------------------------------------------------- Seleção de perfil
-class SelecaoPerfilScreen(Screen):
+# --------------------------------------------------------------- Login
+class LoginScreen(Screen):
     def on_pre_enter(self, *a):
         # Como esta é a primeira tela do app, o Kivy pode tentar ativá-la
         # ainda durante a montagem do main.kv, antes de self.ids estar
         # pronto -- nesse caso, tenta de novo no próximo frame.
-        if "grid_vendedores" not in self.ids:
+        if "email_input" not in self.ids:
             Clock.schedule_once(lambda dt: self.on_pre_enter(), 0)
             return
 
         app().vendedor_atual = None
         app().cliente_atual = None
-        grid = self.ids.grid_vendedores
-        grid.clear_widgets()
-        for vendedor in app().store.listar_vendedores():
-            grid.add_widget(self._criar_card(vendedor))
+        self.ids.senha_input.text = ""
 
-    def _criar_card(self, vendedor):
-        card = Factory.CardButton(size_hint=(None, None), size=(130, 160))
-        card.add_widget(Image(source=vendedor["foto"], size_hint=(1, 0.75)))
-        card.add_widget(Label(text=vendedor["nome"], size_hint=(1, 0.25),
-                               color=(1, 1, 1, 1), shorten=True, shorten_from="right"))
-        card.bind(on_release=lambda *_a, vid=vendedor["id"]: self.selecionar_vendedor(vid))
-        return card
+    def entrar(self):
+        email = self.ids.email_input.text.strip()
+        senha = self.ids.senha_input.text
+        if not email or not senha:
+            self._popup_aviso("Preencha email e senha.")
+            return
 
-    def selecionar_vendedor(self, vendedor_id):
-        app().vendedor_atual = app().store.vendedor_por_id(vendedor_id)
+        botao = self.ids.get("botao_entrar")
+        if botao:
+            botao.disabled = True
+        vendedor, erro = app().store.fazer_login(email, senha)
+        if botao:
+            botao.disabled = False
+
+        if erro:
+            self._popup_aviso(erro)
+            return
+
+        app().vendedor_atual = vendedor
         self.manager.current = "menu"
 
+    def ir_para_criar_conta(self):
+        self.manager.current = "criar_conta"
 
-# ---------------------------------------------------------- Novo vendedor
-class AdicionarVendedorScreen(Screen):
+    def _popup_aviso(self, msg):
+        Popup(title="Atenção", content=Label(text=msg), size_hint=(0.7, 0.3)).open()
+
+
+# ---------------------------------------------------------- Criar conta
+class CriarContaScreen(Screen):
     foto_selecionada = None
 
     def on_pre_enter(self, *a):
         self.foto_selecionada = dm.FOTOS_PERFIL[0]
         self.ids.nome_input.text = ""
+        self.ids.email_input.text = ""
+        self.ids.senha_input.text = ""
         grid = self.ids.grid_fotos
         grid.clear_widgets()
         for foto in dm.FOTOS_PERFIL:
@@ -104,10 +118,26 @@ class AdicionarVendedorScreen(Screen):
 
     def confirmar(self):
         nome = self.ids.nome_input.text.strip()
+        email = self.ids.email_input.text.strip()
+        senha = self.ids.senha_input.text
         if not nome:
             self._popup_aviso("Digite o nome do vendedor.")
             return
-        vendedor = app().store.adicionar_vendedor(nome, self.foto_selecionada or dm.FOTOS_PERFIL[0])
+        if not email or not senha:
+            self._popup_aviso("Preencha email e senha.")
+            return
+
+        botao = self.ids.get("botao_criar")
+        if botao:
+            botao.disabled = True
+        vendedor, erro = app().store.criar_conta(email, senha, nome, self.foto_selecionada or dm.FOTOS_PERFIL[0])
+        if botao:
+            botao.disabled = False
+
+        if erro:
+            self._popup_aviso(erro)
+            return
+
         app().vendedor_atual = vendedor
         self.manager.current = "menu"
 
@@ -115,7 +145,7 @@ class AdicionarVendedorScreen(Screen):
         Popup(title="Atenção", content=Label(text=msg), size_hint=(0.7, 0.3)).open()
 
     def voltar(self):
-        self.manager.current = "selecao_perfil"
+        self.manager.current = "login"
 
 
 # ------------------------------------------------------------------ Menu
@@ -126,8 +156,10 @@ class MenuScreen(Screen):
             self.ids.foto_vendedor.source = v["foto"]
             self.ids.nome_vendedor.text = v["nome"]
 
-    def trocar_vendedor(self):
-        self.manager.current = "selecao_perfil"
+    def sair(self):
+        app().store.sair()
+        app().vendedor_atual = None
+        self.manager.current = "login"
 
 
 # --------------------------------------------------------------- Clientes
@@ -517,8 +549,14 @@ class GerenciarVendedoresScreen(Screen):
             app().store.excluir_vendedor(vendedor_id)
             popup.dismiss()
             if era_vendedor_atual:
+                # Só apaga o cadastro no banco -- a conta de login em si
+                # continua existindo no Firebase Auth (excluir isso exigiria
+                # o Admin SDK, que não usamos aqui). Por isso forçamos logout:
+                # se essa pessoa tentar entrar de novo, o login funciona mas
+                # sem achar o perfil, então é melhor já cair na tela inicial.
+                app().store.sair()
                 app().vendedor_atual = None
-                self.manager.current = "selecao_perfil"
+                self.manager.current = "login"
             else:
                 self._montar_lista()
 

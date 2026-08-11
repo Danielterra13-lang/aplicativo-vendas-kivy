@@ -1,0 +1,31 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+
+    "vendedores": {
+      "$vendedor_id": {
+        ".validate": "newData.hasChildren(['id', 'nome', 'foto'])",
+        "id": { ".validate": "newData.isString() || newData.isNumber()" },
+        "nome": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 120" },
+        "foto": { ".validate": "newData.isString()" },
+        "email": { ".validate": "newData.isString()" },
+        "$outro": { ".validate": false }
+      }
+    },
+
+    "vendas": {
+      "$venda_id": {
+        ".validate": "newData.hasChildren(['id', 'vendedor_id', 'cliente_id', 'itens', 'total', 'data'])",
+        "id": { ".validate": "newData.isNumber()" },
+        "vendedor_id": { ".validate": "newData.isString() || newData.isNumber()" },
+        "cliente_id": { ".validate": "newData.isString()" },
+        "total": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 1000000" },
+        "data": { ".validate": "newData.isString()" },
+        "itens": { ".validate": true }
+      }
+    },
+
+    "$outro": { ".validate": false }
+  }
+}

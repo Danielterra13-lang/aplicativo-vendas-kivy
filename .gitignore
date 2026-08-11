@@ -20,6 +20,10 @@ __pycache__/
 # execução -- não deve ir pro repositório porque tem dados de teste/pessoais)
 dados.json
 
+# Sessão de login (refresh token do Firebase Auth) -- é uma credencial,
+# nunca deve ir pro repositório
+sessao.json
+
 # Sistema (Windows/Mac)
 Thumbs.db
 .DS_Store

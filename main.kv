@@ -131,9 +131,9 @@
         bold: True
         color: 1, 1, 1, 1
 
-# ------------------------------------------------------------ Seleção perfil
-<SelecaoPerfilScreen>:
-    name: "selecao_perfil"
+# ------------------------------------------------------------------- Login
+<LoginScreen>:
+    name: "login"
     FundoTela:
     BoxLayout:
         orientation: "vertical"
@@ -167,70 +167,111 @@
                 halign: "center"
                 valign: "middle"
                 text_size: self.size
-        Label:
-            text: "Quem é você?"
-            font_size: 16
-            bold: True
-            color: 1, 1, 1, 0.85
-            size_hint: 1, None
-            height: 30
-        ScrollView:
-            GridLayout:
-                id: grid_vendedores
-                cols: 3
-                spacing: 14
-                padding: 20
-                size_hint_y: None
-                height: self.minimum_height
-        TemaButton:
-            text: "+ Novo vendedor"
-            size_hint: 1, None
-            height: 84
-            font_size: 22
-            on_release: app.root.current = "adicionar_vendedor"
+        BoxLayout:
+            orientation: "vertical"
+            padding: [30, 20, 30, 30]
+            spacing: 16
+            Label:
+                text: "Entrar"
+                font_size: 18
+                bold: True
+                color: 1, 1, 1, 0.85
+                size_hint: 1, None
+                height: 26
+            TextInput:
+                id: email_input
+                hint_text: "Email"
+                multiline: False
+                font_size: 18
+                padding: [10, 16]
+                size_hint: 1, None
+                height: 52
+            TextInput:
+                id: senha_input
+                hint_text: "Senha"
+                password: True
+                multiline: False
+                font_size: 18
+                padding: [10, 16]
+                size_hint: 1, None
+                height: 52
+            TemaButton:
+                id: botao_entrar
+                text: "Entrar"
+                size_hint: 1, None
+                height: 60
+                font_size: 20
+                on_release: root.entrar()
+            TemaButtonFino:
+                text: "Criar conta"
+                size_hint: 1, None
+                height: 44
+                on_release: root.ir_para_criar_conta()
 
-# --------------------------------------------------------------- Novo vendedor
-<AdicionarVendedorScreen>:
-    name: "adicionar_vendedor"
+# --------------------------------------------------------------- Criar conta
+<CriarContaScreen>:
+    name: "criar_conta"
     FundoTela:
     BoxLayout:
         orientation: "vertical"
         BarraTopo:
-            titulo: "Novo vendedor"
-        BoxLayout:
-            size_hint: 1, None
-            height: 130
-            padding: 20
-            spacing: 20
-            Image:
-                id: preview
-                source: root.foto_selecionada or "icones/foto_perfil.PNG"
-                size_hint: None, 1
-                width: 100
-            TextInput:
-                id: nome_input
-                hint_text: "Nome do vendedor"
-                multiline: False
-                font_size: 20
-                padding: [10, 20]
-        Label:
-            text: "Escolha uma foto:"
-            color: 1, 1, 1, 1
-            size_hint: 1, None
-            height: 30
+            titulo: "Criar conta"
         ScrollView:
-            GridLayout:
-                id: grid_fotos
-                cols: 5
-                spacing: 10
-                padding: 10
+            BoxLayout:
+                orientation: "vertical"
                 size_hint_y: None
                 height: self.minimum_height
-        TemaButton:
-            text: "Salvar vendedor"
-            size_hint: 1, None
-            height: 56
-            on_release: root.confirmar()
+                padding: 20
+                spacing: 14
+                BoxLayout:
+                    size_hint: 1, None
+                    height: 190
+                    spacing: 20
+                    Image:
+                        id: preview
+                        source: root.foto_selecionada or "icones/foto_perfil.PNG"
+                        size_hint: None, 1
+                        width: 100
+                    BoxLayout:
+                        orientation: "vertical"
+                        spacing: 10
+                        TextInput:
+                            id: nome_input
+                            hint_text: "Nome do vendedor"
+                            multiline: False
+                            font_size: 18
+                            padding: [10, 14]
+                        TextInput:
+                            id: email_input
+                            hint_text: "Email"
+                            multiline: False
+                            font_size: 18
+                            padding: [10, 14]
+                        TextInput:
+                            id: senha_input
+                            hint_text: "Senha (mín. 6 caracteres)"
+                            password: True
+                            multiline: False
+                            font_size: 18
+                            padding: [10, 14]
+                Label:
+                    text: "Escolha uma foto:"
+                    color: 1, 1, 1, 1
+                    size_hint: 1, None
+                    height: 30
+                GridLayout:
+                    id: grid_fotos
+                    cols: 5
+                    spacing: 10
+                    padding: 10
+                    size_hint_y: None
+                    height: self.minimum_height
+                TemaButton:
+                    id: botao_criar
+                    text: "Criar conta"
+                    size_hint: 1, None
+                    height: 56
+                    on_release: root.confirmar()
 
 # ------------------------------------------------------------------- Menu
 <MenuScreen>:
@@ -273,8 +314,8 @@
                 text: "Configurações"
                 on_release: app.root.current = "configuracoes"
             TemaButton:
-                text: "Trocar de vendedor"
-                on_release: root.trocar_vendedor()
+                text: "Sair"
+                on_release: root.sair()
 
 # ----------------------------------------------------------------- Clientes
 <ClientesScreen>:
@@ -501,8 +542,8 @@
                 height: self.minimum_height
 
 ScreenManager:
-    SelecaoPerfilScreen:
-    AdicionarVendedorScreen:
+    LoginScreen:
+    CriarContaScreen:
     MenuScreen:
     ClientesScreen:
     ProdutosScreen:
