@@ -1,0 +1,25 @@
+# Ambientes virtuais
+venv/
+venv_novo/
+env/
+.venv/
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs e cache do Kivy
+.kivy/
+
+# IDE
+.idea/
+.vscode/
+
+# Dados locais (cache do Firebase, gerado automaticamente na primeira
+# execução -- não deve ir pro repositório porque tem dados de teste/pessoais)
+dados.json
+
+# Sistema (Windows/Mac)
+Thumbs.db
+.DS_Store

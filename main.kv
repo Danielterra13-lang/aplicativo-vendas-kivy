@@ -1,0 +1,512 @@
+#:kivy 2.3.1
+
+# ---------------------------------------------------------------- widgets base
+# Paleta monocromática (preto/cinza/branco), combinando com o fundo em
+# degradê. Botões são desenhados no canvas em vez de usar as imagens
+# coloridas (botao.png etc.) que vieram do curso.
+<TemaButton@Button>:
+    background_color: 0, 0, 0, 0
+    background_normal: ""
+    background_down: ""
+    color: 1, 1, 1, 1
+    bold: True
+    font_size: 18
+    canvas.before:
+        Color:
+            rgba: (0.40, 0.41, 0.44, 1) if self.state == "down" else (0.26, 0.27, 0.29, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10]
+        Color:
+            rgba: 1, 1, 1, 0.14
+        Line:
+            rounded_rectangle: [self.x, self.y, self.width, self.height, 10]
+            width: 1.1
+
+<TemaButtonFino@Button>:
+    background_color: 0, 0, 0, 0
+    background_normal: ""
+    background_down: ""
+    color: 1, 1, 1, 1
+    bold: True
+    canvas.before:
+        Color:
+            rgba: (0.38, 0.39, 0.42, 1) if self.state == "down" else (0.24, 0.25, 0.27, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [8]
+        Color:
+            rgba: 1, 1, 1, 0.12
+        Line:
+            rounded_rectangle: [self.x, self.y, self.width, self.height, 8]
+            width: 1
+
+<CardButton@ButtonBehavior+BoxLayout>:
+    orientation: "vertical"
+    padding: 6
+    spacing: 4
+    canvas.before:
+        Color:
+            rgba: (0.36, 0.37, 0.40, 0.95) if self.state == "down" else (0.19, 0.19, 0.21, 0.9)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10]
+        Color:
+            rgba: 1, 1, 1, 0.10
+        Line:
+            rounded_rectangle: [self.x, self.y, self.width, self.height, 10]
+            width: 1
+
+<ProdutoRow>:
+    orientation: "horizontal"
+    spacing: 8
+    padding: [6, 4]
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 0.06
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<FundoTela@FloatLayout>:
+    Image:
+        source: "icones/bg_gradiente.png"
+        allow_stretch: True
+        keep_ratio: False
+        size_hint: 1, 1
+        pos_hint: {"x": 0, "y": 0}
+
+<IconeComFundo@AnchorLayout>:
+    fonte: ""
+    # vários ícones do material do curso são pretos puros -- em cima do
+    # fundo escuro ficam invisíveis. Aqui colocamos um círculo claro atrás.
+    canvas.before:
+        Color:
+            rgba: 0.85, 0.85, 0.85, 1
+        Ellipse:
+            pos: self.pos
+            size: self.size
+    Image:
+        source: root.fonte
+        size_hint: None, None
+        size: root.width * 0.58, root.height * 0.58
+
+<BotaoVoltar@ButtonBehavior+AnchorLayout>:
+    canvas.before:
+        Color:
+            rgba: (0.85, 0.85, 0.85, 1) if self.state == "normal" else (1, 1, 1, 1)
+        Ellipse:
+            pos: self.pos
+            size: self.size
+    Image:
+        source: "icones/voltar.png"
+        size_hint: None, None
+        size: 22, 22
+
+<BarraTopo@BoxLayout>:
+    titulo: ""
+    mostrar_voltar: True
+    size_hint: 1, None
+    height: 56
+    padding: [10, 6]
+    spacing: 10
+    canvas.before:
+        Color:
+            rgba: 0, 0, 0, 0.35
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BotaoVoltar:
+        size_hint: None, 1
+        width: 44 if root.mostrar_voltar else 0
+        opacity: 1 if root.mostrar_voltar else 0
+        disabled: not root.mostrar_voltar
+        on_release: app.root.current_screen.voltar()
+    Label:
+        text: root.titulo
+        font_size: 20
+        bold: True
+        color: 1, 1, 1, 1
+
+# ------------------------------------------------------------ Seleção perfil
+<SelecaoPerfilScreen>:
+    name: "selecao_perfil"
+    FundoTela:
+    BoxLayout:
+        orientation: "vertical"
+        BoxLayout:
+            orientation: "vertical"
+            size_hint: 1, None
+            height: 176
+            padding: [20, 24, 20, 6]
+            spacing: 6
+            Image:
+                source: "icones/meu_avatar.png"
+                size_hint: None, None
+                size: 96, 96
+                pos_hint: {"center_x": 0.5}
+            Label:
+                text: "Aplicativo de Vendas"
+                font_size: 24
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint: 1, None
+                height: 32
+                halign: "center"
+                valign: "middle"
+                text_size: self.size
+            Label:
+                text: "Portfólio  ·  Daniel Terra"
+                font_size: 13
+                color: 1, 1, 1, 0.6
+                size_hint: 1, None
+                height: 22
+                halign: "center"
+                valign: "middle"
+                text_size: self.size
+        Label:
+            text: "Quem é você?"
+            font_size: 16
+            bold: True
+            color: 1, 1, 1, 0.85
+            size_hint: 1, None
+            height: 30
+        ScrollView:
+            GridLayout:
+                id: grid_vendedores
+                cols: 3
+                spacing: 14
+                padding: 20
+                size_hint_y: None
+                height: self.minimum_height
+        TemaButton:
+            text: "+ Novo vendedor"
+            size_hint: 1, None
+            height: 84
+            font_size: 22
+            on_release: app.root.current = "adicionar_vendedor"
+
+# --------------------------------------------------------------- Novo vendedor
+<AdicionarVendedorScreen>:
+    name: "adicionar_vendedor"
+    FundoTela:
+    BoxLayout:
+        orientation: "vertical"
+        BarraTopo:
+            titulo: "Novo vendedor"
+        BoxLayout:
+            size_hint: 1, None
+            height: 130
+            padding: 20
+            spacing: 20
+            Image:
+                id: preview
+                source: root.foto_selecionada or "icones/foto_perfil.PNG"
+                size_hint: None, 1
+                width: 100
+            TextInput:
+                id: nome_input
+                hint_text: "Nome do vendedor"
+                multiline: False
+                font_size: 20
+                padding: [10, 20]
+        Label:
+            text: "Escolha uma foto:"
+            color: 1, 1, 1, 1
+            size_hint: 1, None
+            height: 30
+        ScrollView:
+            GridLayout:
+                id: grid_fotos
+                cols: 5
+                spacing: 10
+                padding: 10
+                size_hint_y: None
+                height: self.minimum_height
+        TemaButton:
+            text: "Salvar vendedor"
+            size_hint: 1, None
+            height: 56
+            on_release: root.confirmar()
+
+# ------------------------------------------------------------------- Menu
+<MenuScreen>:
+    name: "menu"
+    FundoTela:
+    BoxLayout:
+        orientation: "vertical"
+        BarraTopo:
+            titulo: "Menu"
+            mostrar_voltar: False
+        BoxLayout:
+            size_hint: 1, None
+            height: 110
+            padding: 20
+            spacing: 16
+            Image:
+                id: foto_vendedor
+                size_hint: None, 1
+                width: 80
+            Label:
+                id: nome_vendedor
+                text: ""
+                font_size: 22
+                bold: True
+                color: 1, 1, 1, 1
+                halign: "left"
+                valign: "middle"
+                text_size: self.size
+        BoxLayout:
+            orientation: "vertical"
+            padding: 30
+            spacing: 18
+            TemaButton:
+                text: "Registrar venda"
+                on_release: app.root.current = "clientes"
+            TemaButton:
+                text: "Vendas da empresa"
+                on_release: app.root.current = "vendas_empresa"
+            TemaButton:
+                text: "Configurações"
+                on_release: app.root.current = "configuracoes"
+            TemaButton:
+                text: "Trocar de vendedor"
+                on_release: root.trocar_vendedor()
+
+# ----------------------------------------------------------------- Clientes
+<ClientesScreen>:
+    name: "clientes"
+    FundoTela:
+    BoxLayout:
+        orientation: "vertical"
+        BarraTopo:
+            titulo: "Escolha o cliente"
+        ScrollView:
+            GridLayout:
+                id: grid_clientes
+                cols: 2
+                spacing: 14
+                padding: 20
+                size_hint_y: None
+                height: self.minimum_height
+
+# ----------------------------------------------------------------- Produtos
+<ProdutosScreen>:
+    name: "produtos"
+    FundoTela:
+    BoxLayout:
+        orientation: "vertical"
+        BarraTopo:
+            titulo: "Venda"
+        Label:
+            id: titulo_cliente
+            text: ""
+            size_hint: 1, None
+            height: 30
+            color: 1, 1, 1, 1
+            bold: True
+        ScrollView:
+            BoxLayout:
+                id: lista_produtos
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+        BoxLayout:
+            size_hint: 1, None
+            height: 60
+            padding: [16, 8]
+            Label:
+                id: total_label
+                text: "Total: R$ 0.00"
+                font_size: 20
+                bold: True
+                color: 1, 1, 1, 1
+        TemaButton:
+            text: "Finalizar venda"
+            size_hint: 1, None
+            height: 56
+            on_release: root.finalizar_venda()
+
+# ---------------------------------------------------------- Vendas da empresa
+<PainelFiltro@BoxLayout>:
+    orientation: "vertical"
+    size_hint: 1, None
+    height: self.minimum_height
+    padding: 14
+    spacing: 8
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 0.05
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10]
+
+<VendasEmpresaScreen>:
+    name: "vendas_empresa"
+    FundoTela:
+    BoxLayout:
+        orientation: "vertical"
+        BarraTopo:
+            titulo: "Vendas da empresa"
+        ScrollView:
+            BoxLayout:
+                id: conteudo_empresa
+                orientation: "vertical"
+                spacing: 18
+                padding: [16, 16, 16, 24]
+                size_hint_y: None
+                height: self.minimum_height
+
+                IconeComFundo:
+                    fonte: "icones/vendas_empresa.png"
+                    size_hint: None, None
+                    size: 56, 56
+                    pos_hint: {"center_x": 0.5}
+
+                PainelFiltro:
+                    BoxLayout:
+                        size_hint_y: None
+                        height: 30
+                        Label:
+                            text: "Filtrar por período"
+                            bold: True
+                            color: 1, 1, 1, 1
+                            halign: "left"
+                            valign: "middle"
+                            text_size: self.size
+                        TemaButtonFino:
+                            text: "Limpar filtro"
+                            size_hint: None, 1
+                            width: 130
+                            on_release: root.limpar_filtro()
+                    BoxLayout:
+                        size_hint_y: None
+                        height: 40
+                        spacing: 10
+                        TemaButtonFino:
+                            id: botao_filtro_meses
+                            text: "Meses"
+                            on_release: root.abrir_dropdown_meses(self)
+                        TemaButtonFino:
+                            id: botao_filtro_dias
+                            text: "Dias"
+                            on_release: root.abrir_dropdown_dias(self)
+
+                GridLayout:
+                    id: grid_kpis
+                    cols: 2
+                    spacing: 12
+                    size_hint_y: None
+                    height: self.minimum_height
+
+                Label:
+                    text: "Ranking de vendedores"
+                    size_hint_y: None
+                    height: 30
+                    bold: True
+                    color: 1, 1, 1, 1
+                    halign: "left"
+                    valign: "middle"
+                    text_size: self.size
+                BoxLayout:
+                    id: ranking_vendedores
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: 6
+
+                Label:
+                    text: "Vendas por data"
+                    size_hint_y: None
+                    height: 30
+                    bold: True
+                    color: 1, 1, 1, 1
+                    halign: "left"
+                    valign: "middle"
+                    text_size: self.size
+                BoxLayout:
+                    id: lista_vendas_data
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: 6
+
+# ------------------------------------------------------------- Configurações
+<ConfiguracoesScreen>:
+    name: "configuracoes"
+    FundoTela:
+    BoxLayout:
+        orientation: "vertical"
+        BarraTopo:
+            titulo: "Configurações"
+        BoxLayout:
+            orientation: "vertical"
+            padding: 30
+            spacing: 18
+            IconeComFundo:
+                fonte: "icones/settings.png"
+                size_hint: None, None
+                size: 60, 60
+                pos_hint: {"center_x": 0.5}
+            TemaButton:
+                text: "Gerenciar vendas"
+                on_release: app.root.current = "gerenciar_vendas"
+            TemaButton:
+                text: "Gerenciar vendedores"
+                on_release: app.root.current = "gerenciar_vendedores"
+            TemaButton:
+                text: "Limpar todas as vendas"
+                on_release: root.limpar_vendas()
+            Label:
+                text: "Dados salvos em dados.json (cache local)\ne sincronizados com o Firebase."
+                color: 1, 1, 1, 0.8
+                halign: "center"
+
+# ------------------------------------------------------------ Gerenciar vendas
+<GerenciarVendasScreen>:
+    name: "gerenciar_vendas"
+    FundoTela:
+    BoxLayout:
+        orientation: "vertical"
+        BarraTopo:
+            titulo: "Gerenciar vendas"
+        ScrollView:
+            BoxLayout:
+                id: lista_vendas
+                orientation: "vertical"
+                spacing: 6
+                padding: 12
+                size_hint_y: None
+                height: self.minimum_height
+
+# -------------------------------------------------------- Gerenciar vendedores
+<GerenciarVendedoresScreen>:
+    name: "gerenciar_vendedores"
+    FundoTela:
+    BoxLayout:
+        orientation: "vertical"
+        BarraTopo:
+            titulo: "Gerenciar vendedores"
+        ScrollView:
+            BoxLayout:
+                id: lista_vendedores
+                orientation: "vertical"
+                spacing: 6
+                padding: 12
+                size_hint_y: None
+                height: self.minimum_height
+
+ScreenManager:
+    SelecaoPerfilScreen:
+    AdicionarVendedorScreen:
+    MenuScreen:
+    ClientesScreen:
+    ProdutosScreen:
+    VendasEmpresaScreen:
+    ConfiguracoesScreen:
+    GerenciarVendasScreen:
+    GerenciarVendedoresScreen:
