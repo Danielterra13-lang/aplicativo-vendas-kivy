@@ -17,15 +17,18 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Build com Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          command: buildozer android debug
-          buildozer_version: stable
+      # Usa a imagem Docker oficial do Kivy (kivy/buildozer, publicada no
+      # Docker Hub) direto com "docker run" -- evita depender de uma action
+      # de terceiro que builda sua própria imagem customizada a cada run
+      # (etapa instável, foi o que quebrou na primeira tentativa).
+      - name: Build com Buildozer (imagem oficial kivy/buildozer)
+        run: |
+          docker run --rm \
+            --volume "${{ github.workspace }}":/home/user/hostcwd \
+            kivy/buildozer android debug
 
       - name: Enviar APK como artefato
         uses: actions/upload-artifact@v4
         with:
           name: aplicativo-vendas-apk
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: bin/*.apk
