@@ -1,0 +1,31 @@
+name: Build Android APK
+
+# Roda toda vez que um push chega na main, ou manualmente pela aba "Actions"
+# do GitHub ("Run workflow"). O build inteiro acontece nos servidores do
+# GitHub -- não precisa de VirtualBox, WSL nem nada instalado no seu PC.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build para Android
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Build com Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
+        with:
+          command: buildozer android debug
+          buildozer_version: stable
+
+      - name: Enviar APK como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: aplicativo-vendas-apk
+          path: ${{ steps.buildozer.outputs.filename }}
