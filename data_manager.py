@@ -19,6 +19,15 @@ import json
 import os
 from datetime import datetime
 
+import certifi
+
+# No Android empacotado (buildozer), o Python não acha o bundle de
+# certificados raiz (CA) do sistema, então toda chamada HTTPS quebra com
+# erro de verificação SSL. O certifi empacota esse bundle junto com o app;
+# isso precisa vir ANTES do "import requests" pra já valer pra tudo que o
+# requests fizer. É inofensivo no desktop -- só aponta pro bundle certo.
+os.environ["SSL_CERT_FILE"] = certifi.where()
+
 import requests
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
