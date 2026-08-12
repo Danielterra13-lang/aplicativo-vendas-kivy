@@ -6,6 +6,7 @@ O layout (kv) fica em main.kv; aqui só ficam os dados e as ações.
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.factory import Factory
+from kivy.metrics import dp, sp
 from kivy.uix.screenmanager import Screen
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.dropdown import DropDown
@@ -107,7 +108,7 @@ class CriarContaScreen(Screen):
         grid = self.ids.grid_fotos
         grid.clear_widgets()
         for foto in dm.FOTOS_PERFIL:
-            img_btn = Factory.CardButton(size_hint=(None, None), size=(90, 90), padding=4)
+            img_btn = Factory.CardButton(size_hint=(None, None), size=(dp(74), dp(74)), padding=dp(4))
             img_btn.add_widget(Image(source=foto))
             img_btn.bind(on_release=lambda *_a, f=foto: self.escolher_foto(f))
             grid.add_widget(img_btn)
@@ -168,7 +169,7 @@ class ClientesScreen(Screen):
         grid = self.ids.grid_clientes
         grid.clear_widgets()
         for cliente in dm.CLIENTES:
-            card = Factory.CardButton(size_hint=(None, None), size=(140, 150))
+            card = Factory.CardButton(size_hint=(None, None), size=(dp(140), dp(150)))
             card.add_widget(Image(source=cliente["foto"], size_hint=(1, 0.75)))
             card.add_widget(Label(text=cliente["nome"], size_hint=(1, 0.25), color=(1, 1, 1, 1)))
             card.bind(on_release=lambda *_a, cid=cliente["id"]: self.selecionar_cliente(cid))
@@ -200,14 +201,14 @@ class ProdutosScreen(Screen):
         box.clear_widgets()
         self._labels_qtd = {}
         for produto in dm.PRODUTOS:
-            row = Factory.ProdutoRow(size_hint=(1, None), height=72)
+            row = Factory.ProdutoRow(size_hint=(1, None), height=dp(72))
             row.add_widget(Image(source=produto["foto"], size_hint=(0.18, 1)))
 
             info = BoxLayout(orientation="vertical", size_hint=(0.42, 1))
             info.add_widget(Label(text=produto["nome"], color=(1, 1, 1, 1), halign="left",
-                                   valign="middle", text_size=(220, None)))
+                                   valign="middle", text_size=(dp(220), None)))
             info.add_widget(Label(text=f"R$ {produto['preco']:.2f}", color=(0.8, 0.85, 1, 1),
-                                   font_size=13, halign="left", valign="middle", text_size=(220, None)))
+                                   font_size=sp(13), halign="left", valign="middle", text_size=(dp(220), None)))
             row.add_widget(info)
 
             menos = Factory.TemaButtonFino(text="-", size_hint=(0.12, 0.8))
@@ -265,7 +266,7 @@ class VendasEmpresaScreen(Screen):
 
     # ---- dropdowns de período (multi-seleção via checkbox, não fecham ao marcar) ----
 
-    LARGURA_DROPDOWN = 240
+    LARGURA_DROPDOWN = dp(240)
 
     def _montar_dropdown_meses(self):
         meses = app().store.meses_disponiveis()
@@ -290,12 +291,12 @@ class VendasEmpresaScreen(Screen):
         dropdown = DropDown(auto_dismiss=False, auto_width=False, width=self.LARGURA_DROPDOWN)
 
         painel = BoxLayout(orientation="vertical", size_hint=(None, None),
-                           width=self.LARGURA_DROPDOWN, padding=10, spacing=6)
+                           width=self.LARGURA_DROPDOWN, padding=dp(10), spacing=dp(6))
         with painel.canvas.before:
             Color(0.15, 0.15, 0.17, 0.98)
             fundo = RoundedRectangle(pos=painel.pos, size=painel.size, radius=[10])
             Color(1, 1, 1, 0.15)
-            borda = Line(rounded_rectangle=(painel.x, painel.y, painel.width, painel.height, 10), width=1)
+            borda = Line(rounded_rectangle=(painel.x, painel.y, painel.width, painel.height, 10), width=dp(1))
 
         def _atualizar_fundo(_inst, _val):
             fundo.pos = painel.pos
@@ -305,12 +306,12 @@ class VendasEmpresaScreen(Screen):
         painel.bind(pos=_atualizar_fundo, size=_atualizar_fundo)
 
         if not itens:
-            painel.add_widget(Label(text="Sem vendas ainda", color=(1, 1, 1, 0.6), font_size=13,
-                                     size_hint_y=None, height=32))
+            painel.add_widget(Label(text="Sem vendas ainda", color=(1, 1, 1, 0.6), font_size=sp(13),
+                                     size_hint_y=None, height=dp(32)))
         for texto, callback in itens:
             painel.add_widget(self._linha_checkbox(texto, callback))
 
-        btn_fechar = Factory.TemaButtonFino(text="Fechar", size_hint_y=None, height=38)
+        btn_fechar = Factory.TemaButtonFino(text="Fechar", size_hint_y=None, height=dp(38))
         btn_fechar.bind(on_release=lambda *_a: dropdown.dismiss())
         painel.add_widget(btn_fechar)
 
@@ -322,13 +323,13 @@ class VendasEmpresaScreen(Screen):
         return dropdown
 
     def _linha_checkbox(self, texto, callback):
-        linha = BoxLayout(size_hint_y=None, height=34, spacing=8)
-        caixa = CheckBox(size_hint=(None, None), size=(24, 24))
+        linha = BoxLayout(size_hint_y=None, height=dp(34), spacing=dp(8))
+        caixa = CheckBox(size_hint=(None, None), size=(dp(24), dp(24)))
         caixa.bind(active=lambda _inst, valor: callback(valor))
         linha.add_widget(caixa)
-        linha.add_widget(Label(text=texto, color=(1, 1, 1, 0.9), font_size=13,
+        linha.add_widget(Label(text=texto, color=(1, 1, 1, 0.9), font_size=sp(13),
                                 halign="left", valign="middle",
-                                text_size=(self.LARGURA_DROPDOWN - 60, 34)))
+                                text_size=(self.LARGURA_DROPDOWN - dp(60), dp(34))))
         return linha
 
     def abrir_dropdown_meses(self, botao):
@@ -360,12 +361,12 @@ class VendasEmpresaScreen(Screen):
         self.ids.botao_filtro_dias.text = "Dias"
 
     def _cartao_kpi(self, titulo, valor):
-        card = _linha_com_fundo(orientation="vertical", size_hint=(1, None), height=90,
-                                 padding=12, spacing=4)
-        card.add_widget(Label(text=titulo, color=(1, 1, 1, 0.65), font_size=12,
-                               halign="left", valign="top", text_size=(220, None)))
-        card.add_widget(Label(text=valor, color=(1, 1, 1, 1), bold=True, font_size=17,
-                               halign="left", valign="middle", text_size=(220, None)))
+        card = _linha_com_fundo(orientation="vertical", size_hint=(1, None), height=dp(90),
+                                 padding=dp(12), spacing=dp(4))
+        card.add_widget(Label(text=titulo, color=(1, 1, 1, 0.65), font_size=sp(12),
+                               halign="left", valign="top", text_size=(dp(220), None)))
+        card.add_widget(Label(text=valor, color=(1, 1, 1, 1), bold=True, font_size=sp(17),
+                               halign="left", valign="middle", text_size=(dp(220), None)))
         return card
 
     def _atualizar(self):
@@ -388,18 +389,18 @@ class VendasEmpresaScreen(Screen):
         ranking.clear_widgets()
         if not k["por_vendedor"]:
             ranking.add_widget(Label(text="Nenhuma venda no período selecionado.", color=(1, 1, 1, 0.8),
-                                      size_hint_y=None, height=28))
+                                      size_hint_y=None, height=dp(28)))
         for nome, total in k["por_vendedor"]:
             ranking.add_widget(Label(text=f"{nome}: R$ {total:.2f}", color=(1, 1, 1, 1),
-                                      size_hint_y=None, height=26, halign="left", valign="middle",
-                                      text_size=(560, None)))
+                                      size_hint_y=None, height=dp(26), halign="left", valign="middle",
+                                      text_size=(dp(560), None)))
 
         lista = self.ids.lista_vendas_data
         lista.clear_widgets()
         vendas = app().store.vendas_filtradas(self.dias_marcados, self.meses_marcados)
         if not vendas:
             lista.add_widget(Label(text="Nenhuma venda no período selecionado.", color=(1, 1, 1, 0.8),
-                                    size_hint_y=None, height=28))
+                                    size_hint_y=None, height=dp(28)))
         for venda in vendas:
             cliente = dm._cliente_por_id(venda["cliente_id"])
             vendedor = app().store.vendedor_por_id(venda["vendedor_id"])
@@ -407,16 +408,16 @@ class VendasEmpresaScreen(Screen):
             nome_vendedor = vendedor["nome"] if vendedor else "vendedor removido"
             data_fmt = venda["data"][:16].replace("T", " ")
 
-            row = _linha_com_fundo(size_hint=(1, None), height=56, padding=[12, 6], spacing=10)
+            row = _linha_com_fundo(size_hint=(1, None), height=dp(56), padding=[dp(12), dp(6)], spacing=dp(10))
             info = BoxLayout(orientation="vertical")
             info.add_widget(Label(text=f"{data_fmt}  ·  {nome_cliente}", color=(1, 1, 1, 1),
-                                   bold=True, font_size=13, halign="left", valign="middle",
-                                   text_size=(400, None)))
-            info.add_widget(Label(text=nome_vendedor, color=(1, 1, 1, 0.65), font_size=12,
-                                   halign="left", valign="middle", text_size=(400, None)))
+                                   bold=True, font_size=sp(13), halign="left", valign="middle",
+                                   text_size=(dp(400), None)))
+            info.add_widget(Label(text=nome_vendedor, color=(1, 1, 1, 0.65), font_size=sp(12),
+                                   halign="left", valign="middle", text_size=(dp(400), None)))
             row.add_widget(info)
             row.add_widget(Label(text=f"R$ {venda['total']:.2f}", color=(1, 1, 1, 1), bold=True,
-                                  size_hint=(None, 1), width=100))
+                                  size_hint=(None, 1), width=dp(100)))
             lista.add_widget(row)
 
     def voltar(self):
@@ -426,9 +427,9 @@ class VendasEmpresaScreen(Screen):
 # ------------------------------------------------------------- Configurações
 class ConfiguracoesScreen(Screen):
     def limpar_vendas(self):
-        conteudo = BoxLayout(orientation="vertical", spacing=10, padding=10)
+        conteudo = BoxLayout(orientation="vertical", spacing=dp(10), padding=dp(10))
         conteudo.add_widget(Label(text="Apagar TODAS as vendas registradas?\nEssa ação não pode ser desfeita."))
-        botoes = BoxLayout(size_hint=(1, 0.4), spacing=10)
+        botoes = BoxLayout(size_hint=(1, 0.4), spacing=dp(10))
         popup = Popup(title="Confirmar", content=conteudo, size_hint=(0.8, 0.4))
 
         def confirmar(*_a):
@@ -460,7 +461,7 @@ class GerenciarVendasScreen(Screen):
 
         if not vendas:
             box.add_widget(Label(text="Nenhuma venda registrada.", color=(1, 1, 1, 0.8),
-                                  size_hint_y=None, height=40))
+                                  size_hint_y=None, height=dp(40)))
             return
 
         for venda in vendas:
@@ -470,24 +471,24 @@ class GerenciarVendasScreen(Screen):
             nome_vendedor = vendedor["nome"] if vendedor else "vendedor removido"
             data_fmt = venda["data"][:16].replace("T", " ")
 
-            row = _linha_com_fundo(size_hint=(1, None), height=64, padding=[12, 6], spacing=10)
+            row = _linha_com_fundo(size_hint=(1, None), height=dp(64), padding=[dp(12), dp(6)], spacing=dp(10))
 
             info = BoxLayout(orientation="vertical")
             info.add_widget(Label(text=f"{nome_cliente}  —  R$ {venda['total']:.2f}", color=(1, 1, 1, 1),
-                                   bold=True, halign="left", valign="middle", text_size=(420, None)))
+                                   bold=True, halign="left", valign="middle", text_size=(dp(420), None)))
             info.add_widget(Label(text=f"{nome_vendedor} · {data_fmt}", color=(1, 1, 1, 0.65),
-                                   font_size=12, halign="left", valign="middle", text_size=(420, None)))
+                                   font_size=sp(12), halign="left", valign="middle", text_size=(dp(420), None)))
             row.add_widget(info)
 
-            btn_excluir = Factory.TemaButtonFino(text="Excluir", size_hint=(None, 1), width=90)
+            btn_excluir = Factory.TemaButtonFino(text="Excluir", size_hint=(None, 1), width=dp(90))
             btn_excluir.bind(on_release=lambda *_a, vid=venda["id"]: self._confirmar_exclusao(vid))
             row.add_widget(btn_excluir)
             box.add_widget(row)
 
     def _confirmar_exclusao(self, venda_id):
-        conteudo = BoxLayout(orientation="vertical", spacing=10, padding=10)
+        conteudo = BoxLayout(orientation="vertical", spacing=dp(10), padding=dp(10))
         conteudo.add_widget(Label(text="Excluir esta venda?\nEssa ação não pode ser desfeita."))
-        botoes = BoxLayout(size_hint=(1, 0.4), spacing=10)
+        botoes = BoxLayout(size_hint=(1, 0.4), spacing=dp(10))
         popup = Popup(title="Confirmar", content=conteudo, size_hint=(0.8, 0.4))
 
         def confirmar(*_a):
@@ -520,28 +521,28 @@ class GerenciarVendedoresScreen(Screen):
 
         if not vendedores:
             box.add_widget(Label(text="Nenhum vendedor cadastrado.", color=(1, 1, 1, 0.8),
-                                  size_hint_y=None, height=40))
+                                  size_hint_y=None, height=dp(40)))
             return
 
         for vendedor in vendedores:
-            row = _linha_com_fundo(size_hint=(1, None), height=64, padding=[12, 6], spacing=10)
+            row = _linha_com_fundo(size_hint=(1, None), height=dp(64), padding=[dp(12), dp(6)], spacing=dp(10))
 
-            row.add_widget(Image(source=vendedor["foto"], size_hint=(None, 1), width=48))
+            row.add_widget(Image(source=vendedor["foto"], size_hint=(None, 1), width=dp(48)))
             row.add_widget(Label(text=vendedor["nome"], color=(1, 1, 1, 1), bold=True,
-                                  halign="left", valign="middle", text_size=(280, None)))
+                                  halign="left", valign="middle", text_size=(dp(280), None)))
 
-            btn_excluir = Factory.TemaButtonFino(text="Excluir", size_hint=(None, 1), width=90)
+            btn_excluir = Factory.TemaButtonFino(text="Excluir", size_hint=(None, 1), width=dp(90))
             btn_excluir.bind(on_release=lambda *_a, vid=vendedor["id"], nome=vendedor["nome"]:
                               self._confirmar_exclusao(vid, nome))
             row.add_widget(btn_excluir)
             box.add_widget(row)
 
     def _confirmar_exclusao(self, vendedor_id, nome):
-        conteudo = BoxLayout(orientation="vertical", spacing=10, padding=10)
+        conteudo = BoxLayout(orientation="vertical", spacing=dp(10), padding=dp(10))
         conteudo.add_widget(Label(
             text=f"Excluir o vendedor \"{nome}\"?\nAs vendas dele continuam no histórico\nda empresa, mas sem vendedor associado."
         ))
-        botoes = BoxLayout(size_hint=(1, 0.4), spacing=10)
+        botoes = BoxLayout(size_hint=(1, 0.4), spacing=dp(10))
         popup = Popup(title="Confirmar", content=conteudo, size_hint=(0.85, 0.45))
 
         def confirmar(*_a):

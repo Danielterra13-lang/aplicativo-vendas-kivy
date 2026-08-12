@@ -1,4 +1,6 @@
 #:kivy 2.3.1
+#:import dp kivy.metrics.dp
+#:import sp kivy.metrics.sp
 
 # ---------------------------------------------------------------- widgets base
 # Paleta monocromática (preto/cinza/branco), combinando com o fundo em
@@ -10,7 +12,7 @@
     background_down: ""
     color: 1, 1, 1, 1
     bold: True
-    font_size: 18
+    font_size: sp(18)
     canvas.before:
         Color:
             rgba: (0.40, 0.41, 0.44, 1) if self.state == "down" else (0.26, 0.27, 0.29, 1)
@@ -41,12 +43,11 @@
             rgba: 1, 1, 1, 0.12
         Line:
             rounded_rectangle: [self.x, self.y, self.width, self.height, 8]
-            width: 1
-
+            width: dp(1)
 <CardButton@ButtonBehavior+BoxLayout>:
     orientation: "vertical"
-    padding: 6
-    spacing: 4
+    padding: dp(6)
+    spacing: dp(4)
     canvas.before:
         Color:
             rgba: (0.36, 0.37, 0.40, 0.95) if self.state == "down" else (0.19, 0.19, 0.21, 0.9)
@@ -58,12 +59,11 @@
             rgba: 1, 1, 1, 0.10
         Line:
             rounded_rectangle: [self.x, self.y, self.width, self.height, 10]
-            width: 1
-
+            width: dp(1)
 <ProdutoRow>:
     orientation: "horizontal"
-    spacing: 8
-    padding: [6, 4]
+    spacing: dp(8)
+    padding: [dp(6), dp(4)]
     canvas.before:
         Color:
             rgba: 1, 1, 1, 0.06
@@ -104,15 +104,14 @@
     Image:
         source: "icones/voltar.png"
         size_hint: None, None
-        size: 22, 22
-
+        size: dp(22), dp(22)
 <BarraTopo@BoxLayout>:
     titulo: ""
     mostrar_voltar: True
     size_hint: 1, None
-    height: 56
-    padding: [10, 6]
-    spacing: 10
+    height: dp(56)
+    padding: [dp(10), dp(6)]
+    spacing: dp(10)
     canvas.before:
         Color:
             rgba: 0, 0, 0, 0.35
@@ -121,13 +120,13 @@
             size: self.size
     BotaoVoltar:
         size_hint: None, 1
-        width: 44 if root.mostrar_voltar else 0
+        width: dp(44) if root.mostrar_voltar else 0
         opacity: 1 if root.mostrar_voltar else 0
         disabled: not root.mostrar_voltar
         on_release: app.root.current_screen.voltar()
     Label:
         text: root.titulo
-        font_size: 20
+        font_size: sp(20)
         bold: True
         color: 1, 1, 1, 1
 
@@ -140,72 +139,72 @@
         BoxLayout:
             orientation: "vertical"
             size_hint: 1, None
-            height: 176
-            padding: [20, 24, 20, 6]
-            spacing: 6
+            height: dp(176)
+            padding: [dp(20), dp(24), dp(20), dp(6)]
+            spacing: dp(6)
             Image:
                 source: "icones/meu_avatar.png"
                 size_hint: None, None
-                size: 96, 96
+                size: dp(96), dp(96)
                 pos_hint: {"center_x": 0.5}
             Label:
                 text: "Aplicativo de Vendas"
-                font_size: 24
+                font_size: sp(24)
                 bold: True
                 color: 1, 1, 1, 1
                 size_hint: 1, None
-                height: 32
+                height: dp(32)
                 halign: "center"
                 valign: "middle"
                 text_size: self.size
             Label:
                 text: "Portfólio  ·  Daniel Terra"
-                font_size: 13
+                font_size: sp(13)
                 color: 1, 1, 1, 0.6
                 size_hint: 1, None
-                height: 22
+                height: dp(22)
                 halign: "center"
                 valign: "middle"
                 text_size: self.size
         BoxLayout:
             orientation: "vertical"
-            padding: [30, 20, 30, 30]
-            spacing: 16
+            padding: [dp(30), dp(20), dp(30), dp(30)]
+            spacing: dp(16)
             Label:
                 text: "Entrar"
-                font_size: 18
+                font_size: sp(18)
                 bold: True
                 color: 1, 1, 1, 0.85
                 size_hint: 1, None
-                height: 26
+                height: dp(26)
             TextInput:
                 id: email_input
                 hint_text: "Email"
                 multiline: False
-                font_size: 18
-                padding: [10, 16]
+                font_size: sp(18)
+                padding: [dp(10), dp(16)]
                 size_hint: 1, None
-                height: 52
+                height: dp(52)
             TextInput:
                 id: senha_input
                 hint_text: "Senha"
                 password: True
                 multiline: False
-                font_size: 18
-                padding: [10, 16]
+                font_size: sp(18)
+                padding: [dp(10), dp(16)]
                 size_hint: 1, None
-                height: 52
+                height: dp(52)
             TemaButton:
                 id: botao_entrar
                 text: "Entrar"
                 size_hint: 1, None
-                height: 60
-                font_size: 20
+                height: dp(60)
+                font_size: sp(20)
                 on_release: root.entrar()
             TemaButtonFino:
                 text: "Criar conta"
                 size_hint: 1, None
-                height: 44
+                height: dp(44)
                 on_release: root.ir_para_criar_conta()
 
 # --------------------------------------------------------------- Criar conta
@@ -221,56 +220,56 @@
                 orientation: "vertical"
                 size_hint_y: None
                 height: self.minimum_height
-                padding: 20
-                spacing: 14
+                padding: dp(20)
+                spacing: dp(14)
                 BoxLayout:
                     size_hint: 1, None
-                    height: 190
-                    spacing: 20
+                    height: dp(190)
+                    spacing: dp(20)
                     Image:
                         id: preview
                         source: root.foto_selecionada or "icones/foto_perfil.PNG"
                         size_hint: None, 1
-                        width: 100
+                        width: dp(100)
                     BoxLayout:
                         orientation: "vertical"
-                        spacing: 10
+                        spacing: dp(10)
                         TextInput:
                             id: nome_input
                             hint_text: "Nome do vendedor"
                             multiline: False
-                            font_size: 18
-                            padding: [10, 14]
+                            font_size: sp(18)
+                            padding: [dp(10), dp(14)]
                         TextInput:
                             id: email_input
                             hint_text: "Email"
                             multiline: False
-                            font_size: 18
-                            padding: [10, 14]
+                            font_size: sp(18)
+                            padding: [dp(10), dp(14)]
                         TextInput:
                             id: senha_input
                             hint_text: "Senha (mín. 6 caracteres)"
                             password: True
                             multiline: False
-                            font_size: 18
-                            padding: [10, 14]
+                            font_size: sp(18)
+                            padding: [dp(10), dp(14)]
                 Label:
                     text: "Escolha uma foto:"
                     color: 1, 1, 1, 1
                     size_hint: 1, None
-                    height: 30
+                    height: dp(30)
                 GridLayout:
                     id: grid_fotos
-                    cols: 5
-                    spacing: 10
-                    padding: 10
+                    cols: 4
+                    spacing: dp(10)
+                    padding: dp(10)
                     size_hint_y: None
                     height: self.minimum_height
                 TemaButton:
                     id: botao_criar
                     text: "Criar conta"
                     size_hint: 1, None
-                    height: 56
+                    height: dp(56)
                     on_release: root.confirmar()
 
 # ------------------------------------------------------------------- Menu
@@ -284,17 +283,17 @@
             mostrar_voltar: False
         BoxLayout:
             size_hint: 1, None
-            height: 110
-            padding: 20
-            spacing: 16
+            height: dp(110)
+            padding: dp(20)
+            spacing: dp(16)
             Image:
                 id: foto_vendedor
                 size_hint: None, 1
-                width: 80
+                width: dp(80)
             Label:
                 id: nome_vendedor
                 text: ""
-                font_size: 22
+                font_size: sp(22)
                 bold: True
                 color: 1, 1, 1, 1
                 halign: "left"
@@ -302,8 +301,8 @@
                 text_size: self.size
         BoxLayout:
             orientation: "vertical"
-            padding: 30
-            spacing: 18
+            padding: dp(30)
+            spacing: dp(18)
             TemaButton:
                 text: "Registrar venda"
                 on_release: app.root.current = "clientes"
@@ -329,8 +328,8 @@
             GridLayout:
                 id: grid_clientes
                 cols: 2
-                spacing: 14
-                padding: 20
+                spacing: dp(14)
+                padding: dp(20)
                 size_hint_y: None
                 height: self.minimum_height
 
@@ -346,7 +345,7 @@
             id: titulo_cliente
             text: ""
             size_hint: 1, None
-            height: 30
+            height: dp(30)
             color: 1, 1, 1, 1
             bold: True
         ScrollView:
@@ -357,18 +356,18 @@
                 height: self.minimum_height
         BoxLayout:
             size_hint: 1, None
-            height: 60
-            padding: [16, 8]
+            height: dp(60)
+            padding: [dp(16), dp(8)]
             Label:
                 id: total_label
                 text: "Total: R$ 0.00"
-                font_size: 20
+                font_size: sp(20)
                 bold: True
                 color: 1, 1, 1, 1
         TemaButton:
             text: "Finalizar venda"
             size_hint: 1, None
-            height: 56
+            height: dp(56)
             on_release: root.finalizar_venda()
 
 # ---------------------------------------------------------- Vendas da empresa
@@ -376,8 +375,8 @@
     orientation: "vertical"
     size_hint: 1, None
     height: self.minimum_height
-    padding: 14
-    spacing: 8
+    padding: dp(14)
+    spacing: dp(8)
     canvas.before:
         Color:
             rgba: 1, 1, 1, 0.05
@@ -397,21 +396,21 @@
             BoxLayout:
                 id: conteudo_empresa
                 orientation: "vertical"
-                spacing: 18
-                padding: [16, 16, 16, 24]
+                spacing: dp(18)
+                padding: [dp(16), dp(16), dp(16), dp(24)]
                 size_hint_y: None
                 height: self.minimum_height
 
                 IconeComFundo:
                     fonte: "icones/vendas_empresa.png"
                     size_hint: None, None
-                    size: 56, 56
+                    size: dp(56), dp(56)
                     pos_hint: {"center_x": 0.5}
 
                 PainelFiltro:
                     BoxLayout:
                         size_hint_y: None
-                        height: 30
+                        height: dp(30)
                         Label:
                             text: "Filtrar por período"
                             bold: True
@@ -422,12 +421,12 @@
                         TemaButtonFino:
                             text: "Limpar filtro"
                             size_hint: None, 1
-                            width: 130
+                            width: dp(130)
                             on_release: root.limpar_filtro()
                     BoxLayout:
                         size_hint_y: None
-                        height: 40
-                        spacing: 10
+                        height: dp(40)
+                        spacing: dp(10)
                         TemaButtonFino:
                             id: botao_filtro_meses
                             text: "Meses"
@@ -440,14 +439,14 @@
                 GridLayout:
                     id: grid_kpis
                     cols: 2
-                    spacing: 12
+                    spacing: dp(12)
                     size_hint_y: None
                     height: self.minimum_height
 
                 Label:
                     text: "Ranking de vendedores"
                     size_hint_y: None
-                    height: 30
+                    height: dp(30)
                     bold: True
                     color: 1, 1, 1, 1
                     halign: "left"
@@ -458,12 +457,11 @@
                     orientation: "vertical"
                     size_hint_y: None
                     height: self.minimum_height
-                    spacing: 6
-
+                    spacing: dp(6)
                 Label:
                     text: "Vendas por data"
                     size_hint_y: None
-                    height: 30
+                    height: dp(30)
                     bold: True
                     color: 1, 1, 1, 1
                     halign: "left"
@@ -474,8 +472,7 @@
                     orientation: "vertical"
                     size_hint_y: None
                     height: self.minimum_height
-                    spacing: 6
-
+                    spacing: dp(6)
 # ------------------------------------------------------------- Configurações
 <ConfiguracoesScreen>:
     name: "configuracoes"
@@ -486,12 +483,12 @@
             titulo: "Configurações"
         BoxLayout:
             orientation: "vertical"
-            padding: 30
-            spacing: 18
+            padding: dp(30)
+            spacing: dp(18)
             IconeComFundo:
                 fonte: "icones/settings.png"
                 size_hint: None, None
-                size: 60, 60
+                size: dp(60), dp(60)
                 pos_hint: {"center_x": 0.5}
             TemaButton:
                 text: "Gerenciar vendas"
@@ -519,8 +516,8 @@
             BoxLayout:
                 id: lista_vendas
                 orientation: "vertical"
-                spacing: 6
-                padding: 12
+                spacing: dp(6)
+                padding: dp(12)
                 size_hint_y: None
                 height: self.minimum_height
 
@@ -536,8 +533,8 @@
             BoxLayout:
                 id: lista_vendedores
                 orientation: "vertical"
-                spacing: 6
-                padding: 12
+                spacing: dp(6)
+                padding: dp(12)
                 size_hint_y: None
                 height: self.minimum_height
 
