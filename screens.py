@@ -54,6 +54,19 @@ def _linha_com_fundo(**kwargs):
     return row
 
 
+def _label_flex(**kwargs):
+    """Label cujo text_size acompanha a própria largura do widget. Usar um
+    número fixo de dp pro text_size (como fizemos antes) funciona bem numa
+    janela de desktop, mas quebra em celular: a largura da tela é menor que
+    esse número fixo, e o texto passa a ser desenhado numa caixa mais larga
+    que a tela, cortando os primeiros caracteres pra fora da área visível.
+    Vinculando text_size à largura real do widget, o texto sempre alinha e
+    quebra certo, em qualquer tamanho de tela."""
+    lbl = Label(**kwargs)
+    lbl.bind(width=lambda inst, valor: setattr(inst, "text_size", (valor, None)))
+    return lbl
+
+
 # --------------------------------------------------------------- Login
 class LoginScreen(Screen):
     def on_pre_enter(self, *a):
@@ -241,10 +254,10 @@ class ProdutosScreen(Screen):
             row.add_widget(Image(source=produto["foto"], size_hint=(0.18, 1)))
 
             info = BoxLayout(orientation="vertical", size_hint=(0.42, 1))
-            info.add_widget(Label(text=produto["nome"], color=(1, 1, 1, 1), halign="left",
-                                   valign="middle", text_size=(dp(220), None)))
-            info.add_widget(Label(text=f"R$ {produto['preco']:.2f}", color=(0.8, 0.85, 1, 1),
-                                   font_size=sp(13), halign="left", valign="middle", text_size=(dp(220), None)))
+            info.add_widget(_label_flex(text=produto["nome"], color=(1, 1, 1, 1), halign="left",
+                                         valign="middle"))
+            info.add_widget(_label_flex(text=f"R$ {produto['preco']:.2f}", color=(0.8, 0.85, 1, 1),
+                                         font_size=sp(13), halign="left", valign="middle"))
             row.add_widget(info)
 
             menos = Factory.TemaButtonFino(text="-", size_hint=(0.12, 0.8))
@@ -399,10 +412,10 @@ class VendasEmpresaScreen(Screen):
     def _cartao_kpi(self, titulo, valor):
         card = _linha_com_fundo(orientation="vertical", size_hint=(1, None), height=dp(90),
                                  padding=dp(12), spacing=dp(4))
-        card.add_widget(Label(text=titulo, color=(1, 1, 1, 0.65), font_size=sp(12),
-                               halign="left", valign="top", text_size=(dp(220), None)))
-        card.add_widget(Label(text=valor, color=(1, 1, 1, 1), bold=True, font_size=sp(17),
-                               halign="left", valign="middle", text_size=(dp(220), None)))
+        card.add_widget(_label_flex(text=titulo, color=(1, 1, 1, 0.65), font_size=sp(12),
+                                     halign="left", valign="top"))
+        card.add_widget(_label_flex(text=valor, color=(1, 1, 1, 1), bold=True, font_size=sp(17),
+                                     halign="left", valign="middle"))
         return card
 
     def _atualizar(self):
@@ -427,9 +440,8 @@ class VendasEmpresaScreen(Screen):
             ranking.add_widget(Label(text="Nenhuma venda no período selecionado.", color=(1, 1, 1, 0.8),
                                       size_hint_y=None, height=dp(28)))
         for nome, total in k["por_vendedor"]:
-            ranking.add_widget(Label(text=f"{nome}: R$ {total:.2f}", color=(1, 1, 1, 1),
-                                      size_hint_y=None, height=dp(26), halign="left", valign="middle",
-                                      text_size=(dp(560), None)))
+            ranking.add_widget(_label_flex(text=f"{nome}: R$ {total:.2f}", color=(1, 1, 1, 1),
+                                            size_hint_y=None, height=dp(26), halign="left", valign="middle"))
 
         lista = self.ids.lista_vendas_data
         lista.clear_widgets()
@@ -446,11 +458,10 @@ class VendasEmpresaScreen(Screen):
 
             row = _linha_com_fundo(size_hint=(1, None), height=dp(56), padding=[dp(12), dp(6)], spacing=dp(10))
             info = BoxLayout(orientation="vertical")
-            info.add_widget(Label(text=f"{data_fmt}  ·  {nome_cliente}", color=(1, 1, 1, 1),
-                                   bold=True, font_size=sp(13), halign="left", valign="middle",
-                                   text_size=(dp(400), None)))
-            info.add_widget(Label(text=nome_vendedor, color=(1, 1, 1, 0.65), font_size=sp(12),
-                                   halign="left", valign="middle", text_size=(dp(400), None)))
+            info.add_widget(_label_flex(text=f"{data_fmt}  ·  {nome_cliente}", color=(1, 1, 1, 1),
+                                         bold=True, font_size=sp(13), halign="left", valign="middle"))
+            info.add_widget(_label_flex(text=nome_vendedor, color=(1, 1, 1, 0.65), font_size=sp(12),
+                                         halign="left", valign="middle"))
             row.add_widget(info)
             row.add_widget(Label(text=f"R$ {venda['total']:.2f}", color=(1, 1, 1, 1), bold=True,
                                   size_hint=(None, 1), width=dp(100)))
@@ -510,10 +521,10 @@ class GerenciarVendasScreen(Screen):
             row = _linha_com_fundo(size_hint=(1, None), height=dp(64), padding=[dp(12), dp(6)], spacing=dp(10))
 
             info = BoxLayout(orientation="vertical")
-            info.add_widget(Label(text=f"{nome_cliente}  —  R$ {venda['total']:.2f}", color=(1, 1, 1, 1),
-                                   bold=True, halign="left", valign="middle", text_size=(dp(420), None)))
-            info.add_widget(Label(text=f"{nome_vendedor} · {data_fmt}", color=(1, 1, 1, 0.65),
-                                   font_size=sp(12), halign="left", valign="middle", text_size=(dp(420), None)))
+            info.add_widget(_label_flex(text=f"{nome_cliente}  —  R$ {venda['total']:.2f}", color=(1, 1, 1, 1),
+                                         bold=True, halign="left", valign="middle"))
+            info.add_widget(_label_flex(text=f"{nome_vendedor} · {data_fmt}", color=(1, 1, 1, 0.65),
+                                         font_size=sp(12), halign="left", valign="middle"))
             row.add_widget(info)
 
             btn_excluir = Factory.TemaButtonFino(text="Excluir", size_hint=(None, 1), width=dp(90))
@@ -564,8 +575,8 @@ class GerenciarVendedoresScreen(Screen):
             row = _linha_com_fundo(size_hint=(1, None), height=dp(64), padding=[dp(12), dp(6)], spacing=dp(10))
 
             row.add_widget(Image(source=vendedor["foto"], size_hint=(None, 1), width=dp(48)))
-            row.add_widget(Label(text=vendedor["nome"], color=(1, 1, 1, 1), bold=True,
-                                  halign="left", valign="middle", text_size=(dp(280), None)))
+            row.add_widget(_label_flex(text=vendedor["nome"], color=(1, 1, 1, 1), bold=True,
+                                        halign="left", valign="middle"))
 
             btn_excluir = Factory.TemaButtonFino(text="Excluir", size_hint=(None, 1), width=dp(90))
             btn_excluir.bind(on_release=lambda *_a, vid=vendedor["id"], nome=vendedor["nome"]:
