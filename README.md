@@ -1,5 +1,7 @@
 # Aplicativo de Vendas (Kivy + Firebase)
 
+Link APK: https://github.com/Danielterra13-lang/aplicativo-vendas-kivy/releases/latest
+
 App desktop de registro de vendas com sincronização em tempo real via Firebase Realtime Database (REST puro, sem SDK), autenticação por vendedor via Firebase Auth, cache local para uso offline e build automático de APK Android via GitHub Actions.
 
 Originado do boilerplate de um curso da Hashtag Treinamentos e reconstruído com arquitetura, autenticação, persistência remota e identidade visual próprias.
