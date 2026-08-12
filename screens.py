@@ -82,6 +82,17 @@ class LoginScreen(Screen):
         if botao:
             botao.disabled = False
 
+        if erro == "PERFIL_AUSENTE":
+            # A conta de login existe e a senha está certa, mas o cadastro
+            # do vendedor (nome/foto) não foi encontrado -- provavelmente
+            # foi excluído em "Gerenciar vendedores" antes. Manda pra Criar
+            # Conta, mas em modo "completar cadastro": não cria uma conta
+            # nova, só preenche o perfil que falta pra essa que já existe.
+            tela_criar = self.manager.get_screen("criar_conta")
+            tela_criar.modo_recuperacao = True
+            self.manager.current = "criar_conta"
+            return
+
         if erro:
             self._popup_aviso(erro)
             return
@@ -99,12 +110,14 @@ class LoginScreen(Screen):
 # ---------------------------------------------------------- Criar conta
 class CriarContaScreen(Screen):
     foto_selecionada = None
+    # True quando chegamos aqui vindo do Login porque a conta existe mas o
+    # cadastro (nome/foto) sumiu -- nesse caso email/senha ficam desativados
+    # e "confirmar" só recria o perfil, sem mexer na conta de login.
+    modo_recuperacao = False
 
     def on_pre_enter(self, *a):
         self.foto_selecionada = dm.FOTOS_PERFIL[0]
         self.ids.nome_input.text = ""
-        self.ids.email_input.text = ""
-        self.ids.senha_input.text = ""
         grid = self.ids.grid_fotos
         grid.clear_widgets()
         for foto in dm.FOTOS_PERFIL:
@@ -113,17 +126,39 @@ class CriarContaScreen(Screen):
             img_btn.bind(on_release=lambda *_a, f=foto: self.escolher_foto(f))
             grid.add_widget(img_btn)
 
+        if self.modo_recuperacao:
+            self.ids.barra_topo.titulo = "Completar cadastro"
+            self.ids.email_input.text = "(conta já existe -- só falta o perfil)"
+            self.ids.email_input.disabled = True
+            self.ids.senha_input.text = ""
+            self.ids.senha_input.disabled = True
+        else:
+            self.ids.barra_topo.titulo = "Criar conta"
+            self.ids.email_input.text = ""
+            self.ids.email_input.disabled = False
+            self.ids.senha_input.text = ""
+            self.ids.senha_input.disabled = False
+
     def escolher_foto(self, foto):
         self.foto_selecionada = foto
         self.ids.preview.source = foto
 
     def confirmar(self):
         nome = self.ids.nome_input.text.strip()
-        email = self.ids.email_input.text.strip()
-        senha = self.ids.senha_input.text
         if not nome:
             self._popup_aviso("Digite o nome do vendedor.")
             return
+        foto = self.foto_selecionada or dm.FOTOS_PERFIL[0]
+
+        if self.modo_recuperacao:
+            vendedor = app().store.completar_perfil(nome, foto)
+            self.modo_recuperacao = False
+            app().vendedor_atual = vendedor
+            self.manager.current = "menu"
+            return
+
+        email = self.ids.email_input.text.strip()
+        senha = self.ids.senha_input.text
         if not email or not senha:
             self._popup_aviso("Preencha email e senha.")
             return
@@ -131,7 +166,7 @@ class CriarContaScreen(Screen):
         botao = self.ids.get("botao_criar")
         if botao:
             botao.disabled = True
-        vendedor, erro = app().store.criar_conta(email, senha, nome, self.foto_selecionada or dm.FOTOS_PERFIL[0])
+        vendedor, erro = app().store.criar_conta(email, senha, nome, foto)
         if botao:
             botao.disabled = False
 
@@ -146,6 +181,7 @@ class CriarContaScreen(Screen):
         Popup(title="Atenção", content=Label(text=msg), size_hint=(0.7, 0.3)).open()
 
     def voltar(self):
+        self.modo_recuperacao = False
         self.manager.current = "login"
 
 

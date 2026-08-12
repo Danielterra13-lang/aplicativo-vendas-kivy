@@ -159,23 +159,64 @@ class DataStore:
             print(f"[Firebase] não foi possível ler o banco ({erro}). Usando cache local.")
             return None
 
-    def _firebase_put(self):
+    def _firebase_put_registro(self, colecao, item):
+        """Grava só ESSE registro (PUT em /colecao/id.json), sem tocar no
+        resto da coleção.
+
+        Importante: nunca fazemos mais um PUT no nó inteiro (/.json ou
+        /vendedores.json) a partir dos dados em memória. Cada dispositivo
+        (desktop, celular) só carrega pro cache local o que já viu, e como
+        as leituras exigem estar autenticado, é fácil um dispositivo escrever
+        antes de ter sincronizado tudo -- um PUT no nó inteiro nesse
+        momento apagaria silenciosamente os registros que só existiam no
+        Firebase e não tinham chegado ainda nesse dispositivo. Gravando
+        registro por registro, essa perda de dados entre dispositivos não
+        acontece."""
         if not self.firebase_url:
             return
-        # Realtime Database trabalha melhor com objetos (dict) do que com
-        # listas/arrays -- por isso convertemos id -> registro antes de enviar.
-        payload = {
-            "vendedores": {str(v["id"]): v for v in self._dados["vendedores"]},
-            "vendas": {str(v["id"]): v for v in self._dados["vendas"]},
-        }
         try:
             params = {"auth": self.id_token} if self.id_token else {}
-            resp = requests.put(f"{self.firebase_url}/.json", json=payload, params=params, timeout=FIREBASE_TIMEOUT)
+            resp = requests.put(
+                f"{self.firebase_url}/{colecao}/{item['id']}.json",
+                json=item, params=params, timeout=FIREBASE_TIMEOUT,
+            )
             resp.raise_for_status()
             self.online = True
         except Exception as erro:
             self.online = False
             print(f"[Firebase] não foi possível gravar no banco ({erro}). Dados salvos só localmente por enquanto.")
+
+    def _firebase_delete_registro(self, colecao, item_id):
+        if not self.firebase_url:
+            return
+        try:
+            params = {"auth": self.id_token} if self.id_token else {}
+            resp = requests.delete(
+                f"{self.firebase_url}/{colecao}/{item_id}.json",
+                params=params, timeout=FIREBASE_TIMEOUT,
+            )
+            resp.raise_for_status()
+            self.online = True
+        except Exception as erro:
+            self.online = False
+            print(f"[Firebase] não foi possível excluir no banco ({erro}).")
+
+    def _firebase_delete_colecao(self, colecao):
+        """Apaga a coleção inteira -- usado só em ações explícitas do tipo
+        'limpar todas as vendas', onde apagar tudo é exatamente a intenção."""
+        if not self.firebase_url:
+            return
+        try:
+            params = {"auth": self.id_token} if self.id_token else {}
+            resp = requests.delete(
+                f"{self.firebase_url}/{colecao}.json",
+                params=params, timeout=FIREBASE_TIMEOUT,
+            )
+            resp.raise_for_status()
+            self.online = True
+        except Exception as erro:
+            self.online = False
+            print(f"[Firebase] não foi possível limpar a coleção ({erro}).")
 
     # ---------- Autenticação (Firebase Auth REST) ----------
 
@@ -203,12 +244,31 @@ class DataStore:
 
         vendedor = {"id": self.uid, "nome": nome.strip(), "foto": foto, "email": email}
         self._dados["vendedores"].append(vendedor)
-        self.salvar()
+        self._salvar_local()
+        self._firebase_put_registro("vendedores", vendedor)
         return vendedor, None
+
+    def completar_perfil(self, nome, foto):
+        """Recria o cadastro do vendedor no banco reaproveitando uma conta
+        que já existe no Firebase Auth (self.uid/self.id_token já setados
+        por fazer_login) mas que ficou sem perfil -- por exemplo, se o
+        cadastro foi excluído em 'Gerenciar vendedores' mas a conta de
+        login continuou existindo. Não cria uma conta nova, só o registro."""
+        vendedor = {"id": self.uid, "nome": nome.strip(), "foto": foto}
+        self._dados["vendedores"] = [v for v in self._dados["vendedores"] if v["id"] != self.uid]
+        self._dados["vendedores"].append(vendedor)
+        self._salvar_local()
+        self._firebase_put_registro("vendedores", vendedor)
+        return vendedor
 
     def fazer_login(self, email, senha):
         """Autentica no Firebase Auth e carrega o perfil do vendedor
-        correspondente ao uid. Retorna (vendedor, None) ou (None, erro)."""
+        correspondente ao uid. Retorna (vendedor, None) em caso de sucesso.
+        Se a autenticação falhar, retorna (None, mensagem_de_erro). Se a
+        conta autenticar mas não tiver um cadastro de vendedor associado
+        (perfil apagado, conta órfã), retorna (None, "PERFIL_AUSENTE") --
+        nesse caso self.id_token/self.uid continuam preenchidos, pra dar
+        pra chamar completar_perfil() na sequência sem pedir login de novo."""
         url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
         try:
             resp = requests.post(
@@ -230,7 +290,7 @@ class DataStore:
         self.carregar()  # agora com idToken válido, recarrega já autenticado
         vendedor = self.vendedor_por_id(self.uid)
         if not vendedor:
-            return None, "Login feito, mas não encontramos o cadastro desse vendedor no banco."
+            return None, "PERFIL_AUSENTE"
         return vendedor, None
 
     def tentar_login_automatico(self):
@@ -319,10 +379,6 @@ class DataStore:
             self._dados = {"vendedores": [], "vendas": []}
             self._salvar_local()
 
-    def salvar(self):
-        self._salvar_local()
-        self._firebase_put()
-
     def _salvar_local(self):
         with open(self.arquivo, "w", encoding="utf-8") as f:
             json.dump(self._dados, f, ensure_ascii=False, indent=2)
@@ -346,7 +402,8 @@ class DataStore:
         self._dados["vendedores"] = [v for v in self._dados["vendedores"] if v["id"] != vendedor_id]
         removeu = len(self._dados["vendedores"]) != antes
         if removeu:
-            self.salvar()
+            self._salvar_local()
+            self._firebase_delete_registro("vendedores", vendedor_id)
         return removeu
 
     # ---------- vendas ----------
@@ -382,7 +439,8 @@ class DataStore:
             "data": datetime.now().isoformat(timespec="seconds"),
         }
         self._dados["vendas"].append(venda)
-        self.salvar()
+        self._salvar_local()
+        self._firebase_put_registro("vendas", venda)
         return venda
 
     def listar_vendas(self, vendedor_id=None):
@@ -397,12 +455,14 @@ class DataStore:
         self._dados["vendas"] = [v for v in self._dados["vendas"] if v["id"] != venda_id]
         removeu = len(self._dados["vendas"]) != antes
         if removeu:
-            self.salvar()
+            self._salvar_local()
+            self._firebase_delete_registro("vendas", venda_id)
         return removeu
 
     def limpar_vendas(self):
         self._dados["vendas"] = []
-        self.salvar()
+        self._salvar_local()
+        self._firebase_delete_colecao("vendas")
 
     # ---------- filtros de período (usados no relatório) ----------
 
