@@ -32,7 +32,6 @@ import requests
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ARQUIVO_DADOS = os.path.join(BASE_DIR, "dados.json")
-ARQUIVO_SESSAO = os.path.join(BASE_DIR, "sessao.json")
 
 # URL base do Realtime Database (sem barra no final e sem ".json").
 # Ajuste aqui se trocar de projeto/banco no Firebase.
@@ -240,7 +239,6 @@ class DataStore:
 
         self.id_token = resp_json["idToken"]
         self.uid = resp_json["localId"]
-        self._salvar_sessao(resp_json["refreshToken"])
 
         vendedor = {"id": self.uid, "nome": nome.strip(), "foto": foto, "email": email}
         self._dados["vendedores"].append(vendedor)
@@ -268,7 +266,10 @@ class DataStore:
         conta autenticar mas não tiver um cadastro de vendedor associado
         (perfil apagado, conta órfã), retorna (None, "PERFIL_AUSENTE") --
         nesse caso self.id_token/self.uid continuam preenchidos, pra dar
-        pra chamar completar_perfil() na sequência sem pedir login de novo."""
+        pra chamar completar_perfil() na sequência sem pedir login de novo.
+
+        Não guardamos sessão em disco de propósito: a cada vez que o app
+        abre, pede email/senha de novo (decisão explícita do usuário)."""
         url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
         try:
             resp = requests.post(
@@ -285,7 +286,6 @@ class DataStore:
 
         self.id_token = resp_json["idToken"]
         self.uid = resp_json["localId"]
-        self._salvar_sessao(resp_json["refreshToken"])
 
         self.carregar()  # agora com idToken válido, recarrega já autenticado
         vendedor = self.vendedor_por_id(self.uid)
@@ -293,71 +293,10 @@ class DataStore:
             return None, "PERFIL_AUSENTE"
         return vendedor, None
 
-    def tentar_login_automatico(self):
-        """Chamado ao abrir o app: se existir uma sessão salva (refresh
-        token), tenta renovar o idToken sem pedir email/senha de novo.
-        Retorna o vendedor logado, ou None se não havia sessão ou ela expirou/
-        foi revogada."""
-        refresh_token = self._carregar_sessao()
-        if not refresh_token:
-            return None
-
-        url = f"https://securetoken.googleapis.com/v1/token?key={FIREBASE_API_KEY}"
-        try:
-            resp = requests.post(
-                url,
-                data={"grant_type": "refresh_token", "refresh_token": refresh_token},
-                timeout=FIREBASE_TIMEOUT,
-            )
-            resp_json = resp.json()
-        except Exception:
-            return None
-
-        if not resp.ok:
-            self._limpar_sessao()
-            return None
-
-        self.id_token = resp_json["id_token"]
-        self.uid = resp_json["user_id"]
-        self._salvar_sessao(resp_json["refresh_token"])
-
-        self.carregar()
-        vendedor = self.vendedor_por_id(self.uid)
-        if not vendedor:
-            self.sair()
-            return None
-        return vendedor
-
     def sair(self):
-        """Encerra a sessão atual (logout). Os dados em cache local
-        continuam disponíveis, só as próximas leituras/escritas no Firebase
-        deixam de mandar o idToken."""
+        """Encerra a sessão atual (logout)."""
         self.id_token = None
         self.uid = None
-        self._limpar_sessao()
-
-    def _salvar_sessao(self, refresh_token):
-        try:
-            with open(ARQUIVO_SESSAO, "w", encoding="utf-8") as f:
-                json.dump({"refresh_token": refresh_token}, f)
-        except Exception as erro:
-            print(f"[Sessão] não foi possível salvar a sessão local ({erro}).")
-
-    def _carregar_sessao(self):
-        if not os.path.exists(ARQUIVO_SESSAO):
-            return None
-        try:
-            with open(ARQUIVO_SESSAO, "r", encoding="utf-8") as f:
-                return json.load(f).get("refresh_token")
-        except Exception:
-            return None
-
-    def _limpar_sessao(self):
-        try:
-            if os.path.exists(ARQUIVO_SESSAO):
-                os.remove(ARQUIVO_SESSAO)
-        except Exception:
-            pass
 
     # ---------- persistência ----------
 
