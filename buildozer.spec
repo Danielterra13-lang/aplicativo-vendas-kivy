@@ -46,8 +46,16 @@ fullscreen = 0
 # INTERNET é necessária -- o app fala com o Firebase (login e banco) via HTTPS.
 android.permissions = android.permission.INTERNET
 
+# (bool) Aceita automaticamente a licença do Android SDK. Sem isso o build
+# trava/falha no CI (GitHub Actions), porque não tem ninguém pra clicar
+# "aceito" na hora que o buildozer baixa o SDK pela primeira vez.
+android.accept_sdk_license = True
+
 # (list) The Android archs to build for, choices: armeabi-v7a, arm64-v8a, x86, x86_64
-android.archs = arm64-v8a, armeabi-v7a
+# Só arm64-v8a por enquanto -- reduz o tempo de build. Dá pra adicionar
+# armeabi-v7a (aparelhos mais antigos, 32-bit) depois que o build básico
+# estiver passando.
+android.archs = arm64-v8a
 
 # (bool) enables Android auto backup feature (Android API >=23)
 android.allow_backup = True
